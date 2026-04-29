@@ -12,9 +12,22 @@ const languages = {
 
 let V = {...languages.Italiano};
 
-// ===== UI =====
+// ===== UI (read-only) =====
 const select = document.getElementById("language");
 const slidersDiv = document.getElementById("sliders");
+
+const labelsMap = {
+  M: "Musicalità",
+  C: "Complessità",
+  R: "Ricchezza lessicale",
+  F: "Flessibilità",
+  Rec: "Ricorsività",
+  Reg: "Regolarità",
+  Red: "Ridondanza",
+  Amb: "Ambiguità",
+  Ph: "Densità fonetica",
+  Inf: "Densità informativa"
+};
 
 Object.keys(languages).forEach(l=>{
   const o=document.createElement("option");
@@ -28,8 +41,10 @@ select.value = "Italiano";
 function createSliders(){
   slidersDiv.innerHTML="";
   Object.keys(V).forEach(k=>{
+    const wrapper = document.createElement("div");
+
     const label=document.createElement("label");
-    label.textContent=k;
+    label.textContent = `${labelsMap[k]} (${V[k].toFixed(2)})`;
 
     const input=document.createElement("input");
     input.type="range";
@@ -37,31 +52,21 @@ function createSliders(){
     input.max=1;
     input.step=0.01;
     input.value=V[k];
+    input.disabled = true;
 
-    input.oninput=()=>V[k]=parseFloat(input.value);
-
-    slidersDiv.appendChild(label);
-    slidersDiv.appendChild(input);
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+    slidersDiv.appendChild(wrapper);
   });
 }
 
 select.onchange=()=>{
   V={...languages[select.value]};
   createSliders();
-  rebuildOrbits();
+  rebuildGeometry();
 };
 
 createSliders();
-
-// ===== COLOR =====
-function getColor() {
-  const h = V.M;
-  const s = 0.4 + V.C * 0.6;
-  const l = 0.3 + V.R * 0.4;
-  const color = new THREE.Color();
-  color.setHSL(h, s, l);
-  return color;
-}
 
 // ===== THREE =====
 const canvas = document.getElementById("c");
@@ -71,6 +76,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
 camera.position.z = 5;
@@ -78,82 +84,111 @@ camera.position.z = 5;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// ===== SHADER =====
-const material = new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 0 },
-    color: { value: new THREE.Color(0x66ccff) }
-  },
-  vertexShader: `
-    uniform float time;
-    varying vec3 vNormal;
+// ===== BASE GEOMETRY =====
+let baseGeo = new THREE.IcosahedronGeometry(1, 64);
 
-    void main() {
-      vNormal = normal;
-      vec3 pos = position + normal * sin(position.x * 5.0 + time) * 0.1;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos,1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform vec3 color;
-    varying vec3 vNormal;
+// ===== SEMANTIC TRANSFORM =====
+function rebuildGeometry(){
 
-    void main() {
-      float intensity = dot(normalize(vNormal), vec3(0.0,0.0,1.0));
-      gl_FragColor = vec4(color * intensity, 1.0);
+  const geo = baseGeo.clone();
+  const pos = geo.attributes.position.array;
+
+  for(let i=0; i<pos.length; i+=3){
+    let x = pos[i];
+    let y = pos[i+1];
+    let z = pos[i+2];
+
+    const len = Math.sqrt(x*x+y*y+z*z);
+
+    // --- SIMMETRIA (Reg)
+    if (V.Reg > 0.6){
+      x = Math.abs(x);
     }
-  `
+
+    // --- RIDONDANZA (Red) → duplicazione ondulata
+    const redundancy = Math.sin(x*10*V.Red) * 0.2 * V.Red;
+
+    // --- COMPLESSITÀ (C) → rumore multi asse
+    const complexity =
+      Math.sin(x*V.C*6) +
+      Math.sin(y*V.C*6) +
+      Math.sin(z*V.C*6);
+
+    // --- RICORSIVITÀ (Rec) → pattern frattale leggero
+    const recursive =
+      Math.sin((x+y+z)*V.Rec*8) * 0.2;
+
+    // --- FLESSIBILITÀ (F) → deformazione anisotropa
+    x *= 1 + V.F * 0.3;
+    y *= 1 - V.F * 0.2;
+
+    // --- AMBIGUITÀ (Amb) → distorsione caotica
+    const ambiguity = (Math.random() - 0.5) * V.Amb * 0.3;
+
+    // --- DENSITÀ FONETICA (Ph) → micro superficie
+    const phonetic = Math.sin(len * 20 * V.Ph) * 0.05;
+
+    // --- INFORMATIVITÀ (Inf) → compressione
+    const infoScale = 1 - V.Inf * 0.3;
+
+    let scale =
+      1 +
+      complexity * 0.05 +
+      recursive +
+      redundancy +
+      phonetic +
+      ambiguity;
+
+    scale *= infoScale;
+
+    pos[i]   = (x/len) * scale;
+    pos[i+1] = (y/len) * scale;
+    pos[i+2] = (z/len) * scale;
+  }
+
+  geo.attributes.position.needsUpdate = true;
+  geo.computeVertexNormals();
+
+  sphere.geometry.dispose();
+  sphere.geometry = geo;
+}
+
+const material = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  roughness: 0.6,
+  metalness: 0.1
 });
 
-const geo = new THREE.IcosahedronGeometry(1, 64);
-const sphere = new THREE.Mesh(geo, material);
+const sphere = new THREE.Mesh(baseGeo, material);
 scene.add(sphere);
 
-const light = new THREE.PointLight(0xffffff, 2);
+// ===== LUCI =====
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+
+const light = new THREE.DirectionalLight(0xffffff, 0.6);
 light.position.set(5,5,5);
 scene.add(light);
 
-const orbitGroup = new THREE.Group();
-scene.add(orbitGroup);
-
-function rebuildOrbits(){
-  orbitGroup.clear();
-
-  const count = Math.floor(3 + (V.C + V.Rec) * 5);
-
-  for(let i=0;i<count;i++){
-    const g = new THREE.TorusGeometry(1.5+i*0.2,0.01,16,100);
-    const m = new THREE.MeshBasicMaterial({color:0xffffff});
-    const ring = new THREE.Mesh(g,m);
-
-    ring.rotation.x = Math.random()*Math.PI;
-    ring.rotation.y = Math.random()*Math.PI;
-
-    orbitGroup.add(ring);
-  }
+// ===== COLOR =====
+function updateColor(){
+  const c = new THREE.Color();
+  c.setHSL(V.M, 0.5, 0.5);
+  material.color = c;
 }
 
-rebuildOrbits();
-
-// ===== ANIMATE =====
-let t = 0;
-
+// ===== LOOP =====
 function animate(){
   requestAnimationFrame(animate);
 
-  t += 0.01;
+  sphere.rotation.y += 0.003;
 
-  material.uniforms.time.value = t;
-  material.uniforms.color.value = getColor();
-
-  sphere.rotation.y += 0.01;
-  orbitGroup.rotation.y += 0.01;
-
+  updateColor();
   controls.update();
 
   renderer.render(scene,camera);
 }
 
+rebuildGeometry();
 animate();
 
 // ===== RESIZE =====
@@ -163,6 +198,5 @@ window.addEventListener('resize',()=>{
 
   camera.aspect = w/h;
   camera.updateProjectionMatrix();
-
   renderer.setSize(w,h);
 });
