@@ -10,6 +10,7 @@ const languages = {
   Arabo:{M:0.9,C:0.7,R:0.8,F:0.6,Rec:0.7,Reg:0.5,Red:0.7,Amb:0.6,Ph:0.7,Inf:0.7}
 };
 
+// fix default (chiave corretta)
 let V = {...languages.Italiano};
 
 // ===== UI =====
@@ -22,6 +23,9 @@ Object.keys(languages).forEach(l=>{
   o.textContent=l;
   select.appendChild(o);
 });
+
+// imposta default selezione
+select.value = "Italiano";
 
 function createSliders(){
   slidersDiv.innerHTML="";
@@ -46,13 +50,13 @@ function createSliders(){
 select.onchange=()=>{
   V={...languages[select.value]};
   createSliders();
+  rebuildOrbits();
 };
 
 createSliders();
 
-// ===== COLOR MAPPING =====
+// ===== COLOR =====
 function getColor() {
-  // Hue = musicalità, Saturation = complessità, Lightness = ricchezza
   const h = V.M;
   const s = 0.4 + V.C * 0.6;
   const l = 0.3 + V.R * 0.4;
@@ -63,7 +67,9 @@ function getColor() {
 
 // ===== THREE =====
 const canvas = document.getElementById("c");
+
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
@@ -72,6 +78,7 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHei
 camera.position.z = 5;
 
 const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
 
 // ===== SHADER =====
 const material = new THREE.ShaderMaterial({
@@ -115,6 +122,7 @@ scene.add(orbitGroup);
 
 function rebuildOrbits(){
   orbitGroup.clear();
+
   const count = Math.floor(3 + (V.C + V.Rec) * 5);
 
   for(let i=0;i<count;i++){
@@ -131,28 +139,34 @@ function rebuildOrbits(){
 
 rebuildOrbits();
 
-// animate
+// ===== ANIMATE =====
 let t = 0;
 
 function animate(){
   requestAnimationFrame(animate);
+
   t += 0.01;
 
   material.uniforms.time.value = t;
   material.uniforms.color.value = getColor();
 
   sphere.rotation.y += 0.01;
-
   orbitGroup.rotation.y += 0.01;
+
+  controls.update();
 
   renderer.render(scene,camera);
 }
 
 animate();
 
-// resize
+// ===== RESIZE =====
 window.addEventListener('resize',()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  camera.aspect = w/h;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth,window.innerHeight);
+
+  renderer.setSize(w,h);
 });
