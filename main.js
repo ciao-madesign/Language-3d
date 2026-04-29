@@ -1,5 +1,5 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'https://cdn.skypack.dev/three@0.160.0';
+import { OrbitControls } from 'https://cdn.skypack.dev/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
 // ===== DATASET =====
 const languages = {
@@ -10,7 +10,6 @@ const languages = {
   Arabo:{M:0.9,C:0.7,R:0.8,F:0.6,Rec:0.7,Reg:0.5,Red:0.7,Amb:0.6,Ph:0.7,Inf:0.7}
 };
 
-// fix default (chiave corretta)
 let V = {...languages.Italiano};
 
 // ===== UI =====
@@ -24,7 +23,6 @@ Object.keys(languages).forEach(l=>{
   select.appendChild(o);
 });
 
-// imposta default selezione
 select.value = "Italiano";
 
 function createSliders(){
@@ -111,12 +109,10 @@ const geo = new THREE.IcosahedronGeometry(1, 64);
 const sphere = new THREE.Mesh(geo, material);
 scene.add(sphere);
 
-// luce
 const light = new THREE.PointLight(0xffffff, 2);
 light.position.set(5,5,5);
 scene.add(light);
 
-// orbite
 const orbitGroup = new THREE.Group();
 scene.add(orbitGroup);
 
