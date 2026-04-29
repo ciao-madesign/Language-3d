@@ -1,0 +1,27 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+  font-family: sans-serif;
+}
+
+#ui {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 260px;
+  background: rgba(0,0,0,0.7);
+  padding: 12px;
+  border-radius: 8px;
+  color: white;
+}
+
+label {
+  font-size: 12px;
+  display: block;
+  margin-top: 6px;
+}
+
+input, select {
+  width: 100%;
+}
