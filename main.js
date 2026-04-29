@@ -1,7 +1,7 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
-// ===== DATASET =====
+// ===== DATA =====
 const languages = {
   Italiano:{M:0.8,C:0.5,R:0.7,F:0.6,Rec:0.6,Reg:0.7,Red:0.5,Amb:0.5,Ph:0.5,Inf:0.5},
   Inglese:{M:0.6,C:0.4,R:0.8,F:0.7,Rec:0.6,Reg:0.5,Red:0.4,Amb:0.7,Ph:0.7,Inf:0.6},
@@ -12,7 +12,7 @@ const languages = {
 
 let V = {...languages.Italiano};
 
-// ===== UI (read-only) =====
+// ===== UI =====
 const select = document.getElementById("language");
 const slidersDiv = document.getElementById("sliders");
 
@@ -41,162 +41,137 @@ select.value = "Italiano";
 function createSliders(){
   slidersDiv.innerHTML="";
   Object.keys(V).forEach(k=>{
-    const wrapper = document.createElement("div");
-
+    const d=document.createElement("div");
     const label=document.createElement("label");
     label.textContent = `${labelsMap[k]} (${V[k].toFixed(2)})`;
 
     const input=document.createElement("input");
     input.type="range";
-    input.min=0;
-    input.max=1;
-    input.step=0.01;
     input.value=V[k];
-    input.disabled = true;
+    input.disabled=true;
 
-    wrapper.appendChild(label);
-    wrapper.appendChild(input);
-    slidersDiv.appendChild(wrapper);
+    d.appendChild(label);
+    d.appendChild(input);
+    slidersDiv.appendChild(d);
   });
 }
 
 select.onchange=()=>{
   V={...languages[select.value]};
   createSliders();
-  rebuildGeometry();
+  rebuildSystem();
 };
 
 createSliders();
 
 // ===== THREE =====
-const canvas = document.getElementById("c");
-
-const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById("c"), antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
-camera.position.z = 5;
+camera.position.z = 12;
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
 
-// ===== BASE GEOMETRY =====
-let baseGeo = new THREE.IcosahedronGeometry(1, 64);
+// ===== SYSTEM =====
+let group = new THREE.Group();
+scene.add(group);
 
-// ===== SEMANTIC TRANSFORM =====
-function rebuildGeometry(){
+function rebuildSystem(){
+  scene.remove(group);
+  group = new THREE.Group();
 
-  const geo = baseGeo.clone();
-  const pos = geo.attributes.position.array;
+  const nodeCount = Math.floor(50 + V.C * 350);
+  const clusters = Math.floor(1 + V.Rec * 6);
+  const spread = 3 * (1 - V.Inf);
 
-  for(let i=0; i<pos.length; i+=3){
-    let x = pos[i];
-    let y = pos[i+1];
-    let z = pos[i+2];
+  const nodes = [];
 
-    const len = Math.sqrt(x*x+y*y+z*z);
+  for(let c=0;c<clusters;c++){
+    const center = new THREE.Vector3(
+      (Math.random()-0.5)*spread,
+      (Math.random()-0.5)*spread,
+      (Math.random()-0.5)*spread
+    );
 
-    // --- SIMMETRIA (Reg)
-    if (V.Reg > 0.6){
-      x = Math.abs(x);
+    const localCount = Math.floor(nodeCount / clusters);
+
+    for(let i=0;i<localCount;i++){
+      let pos = new THREE.Vector3(
+        center.x + (Math.random()-0.5)*(1-V.Ph),
+        center.y + (Math.random()-0.5)*(1-V.Ph),
+        center.z + (Math.random()-0.5)*(1-V.Ph)
+      );
+
+      // simmetria forte
+      if(V.Reg > 0.7){
+        pos.x = Math.abs(pos.x);
+      }
+
+      // ambiguità = caos
+      pos.addScalar((Math.random()-0.5)*V.Amb*2);
+
+      nodes.push(pos);
     }
-
-    // --- RIDONDANZA (Red) → duplicazione ondulata
-    const redundancy = Math.sin(x*10*V.Red) * 0.2 * V.Red;
-
-    // --- COMPLESSITÀ (C) → rumore multi asse
-    const complexity =
-      Math.sin(x*V.C*6) +
-      Math.sin(y*V.C*6) +
-      Math.sin(z*V.C*6);
-
-    // --- RICORSIVITÀ (Rec) → pattern frattale leggero
-    const recursive =
-      Math.sin((x+y+z)*V.Rec*8) * 0.2;
-
-    // --- FLESSIBILITÀ (F) → deformazione anisotropa
-    x *= 1 + V.F * 0.3;
-    y *= 1 - V.F * 0.2;
-
-    // --- AMBIGUITÀ (Amb) → distorsione caotica
-    const ambiguity = (Math.random() - 0.5) * V.Amb * 0.3;
-
-    // --- DENSITÀ FONETICA (Ph) → micro superficie
-    const phonetic = Math.sin(len * 20 * V.Ph) * 0.05;
-
-    // --- INFORMATIVITÀ (Inf) → compressione
-    const infoScale = 1 - V.Inf * 0.3;
-
-    let scale =
-      1 +
-      complexity * 0.05 +
-      recursive +
-      redundancy +
-      phonetic +
-      ambiguity;
-
-    scale *= infoScale;
-
-    pos[i]   = (x/len) * scale;
-    pos[i+1] = (y/len) * scale;
-    pos[i+2] = (z/len) * scale;
   }
 
-  geo.attributes.position.needsUpdate = true;
-  geo.computeVertexNormals();
+  // ===== NODI =====
+  const sphereGeo = new THREE.SphereGeometry(0.05 + V.Ph*0.05, 8, 8);
+  const mat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color().setHSL(V.M,0.6,0.5)
+  });
 
-  sphere.geometry.dispose();
-  sphere.geometry = geo;
+  nodes.forEach(p=>{
+    const m = new THREE.Mesh(sphereGeo, mat);
+    m.position.copy(p);
+    group.add(m);
+  });
+
+  // ===== LEGAMI =====
+  const lineMat = new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.4});
+
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const d = nodes[i].distanceTo(nodes[j]);
+
+      // soglia dipende da flessibilità e ridondanza
+      if(d < 0.6 + V.F*0.5){
+        const geo = new THREE.BufferGeometry().setFromPoints([nodes[i], nodes[j]]);
+        const line = new THREE.Line(geo, lineMat);
+        group.add(line);
+      }
+    }
+  }
+
+  // ===== RIDONDANZA = copia cluster =====
+  if(V.Red > 0.6){
+    const clone = group.clone();
+    clone.position.x += 1.5;
+    group.add(clone);
+  }
+
+  scene.add(group);
 }
 
-const material = new THREE.MeshStandardMaterial({
-  color: 0xffffff,
-  roughness: 0.6,
-  metalness: 0.1
-});
-
-const sphere = new THREE.Mesh(baseGeo, material);
-scene.add(sphere);
-
-// ===== LUCI =====
-scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-
-const light = new THREE.DirectionalLight(0xffffff, 0.6);
-light.position.set(5,5,5);
-scene.add(light);
-
-// ===== COLOR =====
-function updateColor(){
-  const c = new THREE.Color();
-  c.setHSL(V.M, 0.5, 0.5);
-  material.color = c;
-}
+rebuildSystem();
 
 // ===== LOOP =====
 function animate(){
   requestAnimationFrame(animate);
 
-  sphere.rotation.y += 0.003;
-
-  updateColor();
-  controls.update();
+  group.rotation.y += 0.002 + V.M*0.01;
 
   renderer.render(scene,camera);
 }
 
-rebuildGeometry();
 animate();
 
 // ===== RESIZE =====
 window.addEventListener('resize',()=>{
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-
-  camera.aspect = w/h;
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(w,h);
 });
