@@ -1,14 +1,38 @@
+import { computeCentrality } from '../analysis/metrics.js';
+
 export function updateUI(graph) {
   const el = document.getElementById("insights");
 
-  const nodes = graph.nodes.length;
+  const ranked = computeCentrality(graph);
 
-  let avgLinks =
-    graph.nodes.reduce((acc, n) => acc + n.links.length, 0) / nodes;
+  const top = ranked.slice(0, 5);
+
+  const avgLinks =
+    ranked.reduce((acc, n) => acc + n.links.size, 0) /
+    (ranked.length || 1);
+
+  const entropy = computeEntropy(graph);
 
   el.innerHTML = `
-    Nodes: ${nodes}<br/>
-    Avg links: ${avgLinks.toFixed(2)}<br/>
-    Status: dynamic graph active
+    <b>Nodes:</b> ${ranked.length}<br/>
+    <b>Avg links:</b> ${avgLinks.toFixed(2)}<br/>
+    <b>Entropy:</b> ${entropy.toFixed(2)}<br/>
+    <hr/>
+    <b>Top hubs:</b><br/>
+    ${top.map(n =>
+      `${n.id} (${n.centrality.toFixed(2)})`
+    ).join("<br/>")}
   `;
+}
+
+function computeEntropy(graph) {
+  let sum = 0;
+
+  graph.edges.forEach(w => {
+    if (w > 0) {
+      sum += -w * Math.log(w);
+    }
+  });
+
+  return sum;
 }
