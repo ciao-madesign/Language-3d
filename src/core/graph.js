@@ -1,32 +1,45 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 
-export function createGraph(n = 50) {
-  const nodes = [];
+export function createGraph() {
+  return {
+    nodes: new Map(),
+    edges: new Map()
+  };
+}
 
-  for (let i = 0; i < n; i++) {
-    nodes.push({
-      id: i,
-      pos: new THREE.Vector3(
-        (Math.random() - 0.5) * 6,
-        (Math.random() - 0.5) * 6,
-        (Math.random() - 0.5) * 6
-      ),
-      vel: new THREE.Vector3(),
-      mass: 1 + Math.random() * 2,
-      links: []
-    });
+export function updateGraphFromCorpus(graph, store) {
+  const nodes = graph.nodes;
+
+  // crea nodi
+  for (let [token, freq] of store.freq) {
+    if (!nodes.has(token)) {
+      nodes.set(token, {
+        id: token,
+        pos: new THREE.Vector3(
+          (Math.random() - 0.5) * 5,
+          (Math.random() - 0.5) * 5,
+          (Math.random() - 0.5) * 5
+        ),
+        vel: new THREE.Vector3(),
+        mass: 1 + Math.random(),
+        links: new Set()
+      });
+    }
   }
 
-  // random sparse connections
-  nodes.forEach(n => {
-    nodes.forEach(m => {
-      if (n !== m && Math.random() < 0.03) {
-        n.links.push(m.id);
-      }
-    });
-  });
+  // aggiorna edge (top co-occorrenze)
+  graph.edges.clear();
 
-  return {
-    nodes
-  };
+  for (let [pair, val] of store.cooc) {
+    if (val < 0.5) continue;
+
+    const [a, b] = pair.split("|");
+
+    if (nodes.has(a) && nodes.has(b)) {
+      nodes.get(a).links.add(b);
+      nodes.get(b).links.add(a);
+
+      graph.edges.set(pair, val);
+    }
+  }
 }
