@@ -1,4 +1,5 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
+import { updateEmbedding, similarity, initEmbedding } from './embedding.js';
 
 export function createGraph() {
   return {
@@ -10,36 +11,65 @@ export function createGraph() {
 export function updateGraphFromCorpus(graph, store) {
   const nodes = graph.nodes;
 
-  // crea nodi
+  // ===== CREAZIONE NODI =====
   for (let [token, freq] of store.freq) {
     if (!nodes.has(token)) {
-      nodes.set(token, {
+      const node = {
         id: token,
         pos: new THREE.Vector3(
-          (Math.random() - 0.5) * 5,
-          (Math.random() - 0.5) * 5,
-          (Math.random() - 0.5) * 5
+          (Math.random() - 0.5) * 6,
+          (Math.random() - 0.5) * 6,
+          (Math.random() - 0.5) * 6
         ),
         vel: new THREE.Vector3(),
         mass: 1 + Math.random(),
-        links: new Set()
-      });
+        links: new Set(),
+        embedding: null
+      };
+
+      initEmbedding(node);
+      nodes.set(token, node);
     }
   }
 
-  // aggiorna edge (top co-occorrenze)
+  // ===== RESET LINKS =====
+  nodes.forEach(n => n.links.clear());
   graph.edges.clear();
 
-  for (let [pair, val] of store.cooc) {
-    if (val < 0.5) continue;
+  const nodeList = Array.from(nodes.values());
 
-    const [a, b] = pair.split("|");
+  // ===== UPDATE EMBEDDING (LOCAL) =====
+  nodeList.forEach(node => {
+    const neighbors = Array.from(node.links)
+      .map(id => nodes.get(id))
+      .filter(Boolean);
 
-    if (nodes.has(a) && nodes.has(b)) {
-      nodes.get(a).links.add(b);
-      nodes.get(b).links.add(a);
+    updateEmbedding(node, neighbors);
+  });
 
-      graph.edges.set(pair, val);
+  // ===== COSTRUZIONE EDGE SEMANTICI =====
+  for (let i = 0; i < nodeList.length; i++) {
+    for (let j = i + 1; j < nodeList.length; j++) {
+      const a = nodeList[i];
+      const b = nodeList[j];
+
+      const sim = similarity(a, b);
+
+      if (sim > 0.75) {
+        a.links.add(b.id);
+        b.links.add(a.id);
+
+        graph.edges.set(`${a.id}|${b.id}`, sim);
+      }
     }
   }
+
+  // ===== RE-UPDATE EMBEDDING DOPO EDGE =====
+  nodeList.forEach(node => {
+    const neighbors = Array.from(node.links)
+      .map(id => nodes.get(id))
+      .filter(Boolean);
+
+    updateEmbedding(node, neighbors);
+  });
 }
