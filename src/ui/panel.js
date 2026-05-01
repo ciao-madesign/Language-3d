@@ -1,4 +1,4 @@
-export function updateUI(graph, lang) {
+export function updateUI(graph, corpusName) {
   const el = document.getElementById("insights");
 
   const nodes = graph.nodes.size;
@@ -9,10 +9,10 @@ export function updateUI(graph, lang) {
   const avgLinks = links / (nodes || 1);
 
   el.innerHTML = `
-    <b>Language:</b> ${lang}<br/>
+    <b>Corpus:</b> ${corpusName}<br/>
     <hr/>
     <b>Nodes:</b> ${nodes}<br/>
     <b>Avg links:</b> ${avgLinks.toFixed(2)}<br/>
-    <b>Status:</b> semantic graph active
+    <b>Status:</b> real corpus streaming
   `;
 }
