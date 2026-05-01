@@ -1,17 +1,19 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 
+const TARGET_RADIUS = 5;
+
 export function stepPhysics(graph) {
   const nodes = Array.from(graph.nodes.values());
 
   const kRepel = 0.05;
-  const kSpring = 0.03;
+  const kSpring = 0.04;
   const kCenter = 0.01;
   const damping = 0.9;
 
   nodes.forEach(a => {
     let force = new THREE.Vector3();
 
-    // repulsion
+    // repulsione
     nodes.forEach(b => {
       if (a === b) return;
 
@@ -21,7 +23,7 @@ export function stepPhysics(graph) {
       force.add(dir.normalize().multiplyScalar(kRepel / (dist * dist)));
     });
 
-    // springs
+    // spring
     a.links.forEach(id => {
       const b = graph.nodes.get(id);
       if (!b) return;
@@ -29,15 +31,31 @@ export function stepPhysics(graph) {
       const dir = new THREE.Vector3().subVectors(b.pos, a.pos);
       const dist = dir.length();
 
-      force.add(dir.normalize().multiplyScalar(kSpring * (dist - 1.5)));
+      force.add(dir.normalize().multiplyScalar(kSpring * (dist - 1.2)));
     });
 
-    // center force (fix dispersione)
+    // centratura
     force.add(a.pos.clone().multiplyScalar(-kCenter));
 
-    // integrate
+    // integrazione
     a.vel.add(force.divideScalar(a.mass));
     a.vel.multiplyScalar(damping);
     a.pos.add(a.vel);
   });
+
+  // ===== AUTO-SCALING =====
+  let maxR = 0;
+
+  nodes.forEach(n => {
+    const r = n.pos.length();
+    if (r > maxR) maxR = r;
+  });
+
+  if (maxR > 0) {
+    const scale = TARGET_RADIUS / maxR;
+
+    nodes.forEach(n => {
+      n.pos.multiplyScalar(scale);
+    });
+  }
 }
