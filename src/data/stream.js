@@ -1,17 +1,13 @@
 import { tokenize } from './tokenizer.js';
+import { languages } from './languages.js';
 
-const SAMPLE_TEXT = [
-  "la lingua evolve nel tempo con nuove parole",
-  "le reti semantiche cambiano struttura",
-  "i sistemi dinamici mostrano comportamenti emergenti",
-  "la comunicazione umana è adattiva",
-  "i cluster linguistici si formano naturalmente"
-];
-
-export function startStream(store, onUpdate) {
+export function startStream(store, getLanguage, onUpdate) {
   setInterval(() => {
+    const lang = getLanguage();
+    const samples = languages[lang];
+
     const text =
-      SAMPLE_TEXT[Math.floor(Math.random() * SAMPLE_TEXT.length)];
+      samples[Math.floor(Math.random() * samples.length)];
 
     const tokens = tokenize(text);
 
