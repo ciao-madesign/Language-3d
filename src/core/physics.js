@@ -13,17 +13,16 @@ export function stepPhysics(graph) {
   nodes.forEach(a => {
     let force = new THREE.Vector3();
 
-    // repulsione
-    nodes.forEach(b => {
-      if (a === b) return;
+    for (let i = 0; i < 10; i++) {
+      const b = nodes[Math.floor(Math.random() * nodes.length)];
+      if (a === b) continue;
 
       const dir = new THREE.Vector3().subVectors(a.pos, b.pos);
       const dist = Math.max(dir.length(), 0.3);
 
       force.add(dir.normalize().multiplyScalar(kRepel / (dist * dist)));
-    });
+    }
 
-    // spring
     a.links.forEach(id => {
       const b = graph.nodes.get(id);
       if (!b) return;
@@ -34,16 +33,13 @@ export function stepPhysics(graph) {
       force.add(dir.normalize().multiplyScalar(kSpring * (dist - 1.2)));
     });
 
-    // centratura
     force.add(a.pos.clone().multiplyScalar(-kCenter));
 
-    // integrazione
     a.vel.add(force.divideScalar(a.mass));
     a.vel.multiplyScalar(damping);
     a.pos.add(a.vel);
   });
 
-  // ===== AUTO-SCALING =====
   let maxR = 0;
 
   nodes.forEach(n => {
@@ -53,9 +49,6 @@ export function stepPhysics(graph) {
 
   if (maxR > 0) {
     const scale = TARGET_RADIUS / maxR;
-
-    nodes.forEach(n => {
-      n.pos.multiplyScalar(scale);
-    });
+    nodes.forEach(n => n.pos.multiplyScalar(scale));
   }
 }
