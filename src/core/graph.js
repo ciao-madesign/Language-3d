@@ -1,8 +1,8 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 import { updateEmbedding, similarity, initEmbedding } from './embedding.js';
 
-const MAX_NODES = 120;
-const MAX_EDGES_PER_NODE = 6;
+const MAX_NODES = 60;
+const MAX_EDGES_PER_NODE = 4;
 
 export function createGraph() {
   return {
@@ -14,7 +14,7 @@ export function createGraph() {
 export function updateGraphFromCorpus(graph, store) {
   const nodes = graph.nodes;
 
-  // ===== CREA/AGGIORNA NODI =====
+  // ===== CREA NODI =====
   for (let [token, freq] of store.freq) {
     if (!nodes.has(token)) {
       const node = {
@@ -26,7 +26,7 @@ export function updateGraphFromCorpus(graph, store) {
           (Math.random() - 0.5) * 2
         ),
         vel: new THREE.Vector3(),
-        mass: 1 + Math.random(),
+        mass: 1,
         links: new Set(),
         embedding: null
       };
@@ -38,15 +38,14 @@ export function updateGraphFromCorpus(graph, store) {
     }
   }
 
-  // ===== PRUNING NODI =====
+  // ===== PRUNE NODI =====
   const sorted = Array.from(nodes.values())
     .sort((a, b) => b.freq - a.freq)
     .slice(0, MAX_NODES);
 
   const allowed = new Set(sorted.map(n => n.id));
 
-  // elimina nodi fuori top
-  nodes.forEach((n, id) => {
+  nodes.forEach((_, id) => {
     if (!allowed.has(id)) nodes.delete(id);
   });
 
@@ -56,61 +55,33 @@ export function updateGraphFromCorpus(graph, store) {
   nodes.forEach(n => n.links.clear());
   graph.edges.clear();
 
-  // ===== EMBEDDING UPDATE =====
+  // ===== EMBEDDING UPDATE (UNA SOLA VOLTA) =====
   nodeList.forEach(node => {
-    const neighbors = Array.from(node.links)
-      .map(id => nodes.get(id))
-      .filter(Boolean);
-
-    updateEmbedding(node, neighbors);
+    updateEmbedding(node, []);
   });
 
-  // ===== COSTRUZIONE EDGE COMPLETA =====
-  let tempEdges = [];
+  // ===== EDGE APPROX (NO O(n²)) =====
+  nodeList.forEach(a => {
+    // campiona pochi nodi
+    const sample = [];
 
-  for (let i = 0; i < nodeList.length; i++) {
-    for (let j = i + 1; j < nodeList.length; j++) {
-      const a = nodeList[i];
-      const b = nodeList[j];
-
-      const sim = similarity(a, b);
-
-      if (sim > 0.65) {
-        tempEdges.push({ a, b, sim });
-      }
+    for (let i = 0; i < 10; i++) {
+      const b = nodeList[Math.floor(Math.random() * nodeList.length)];
+      if (b && b !== a) sample.push(b);
     }
-  }
 
-  // ===== EDGE PRUNING (top-K per nodo) =====
-  const edgeMap = new Map();
+    const ranked = sample
+      .map(b => ({ b, sim: similarity(a, b) }))
+      .sort((x, y) => y.sim - x.sim)
+      .slice(0, MAX_EDGES_PER_NODE);
 
-  tempEdges.forEach(e => {
-    if (!edgeMap.has(e.a.id)) edgeMap.set(e.a.id, []);
-    if (!edgeMap.has(e.b.id)) edgeMap.set(e.b.id, []);
+    ranked.forEach(({ b, sim }) => {
+      if (sim > 0.6) {
+        a.links.add(b.id);
+        b.links.add(a.id);
 
-    edgeMap.get(e.a.id).push(e);
-    edgeMap.get(e.b.id).push(e);
-  });
-
-  edgeMap.forEach((edges, nodeId) => {
-    edges
-      .sort((a, b) => b.sim - a.sim)
-      .slice(0, MAX_EDGES_PER_NODE)
-      .forEach(e => {
-        const key = `${e.a.id}|${e.b.id}`;
-        graph.edges.set(key, e.sim);
-
-        e.a.links.add(e.b.id);
-        e.b.links.add(e.a.id);
-      });
-  });
-
-  // ===== EMBEDDING UPDATE FINALE =====
-  nodeList.forEach(node => {
-    const neighbors = Array.from(node.links)
-      .map(id => nodes.get(id))
-      .filter(Boolean);
-
-    updateEmbedding(node, neighbors);
+        graph.edges.set(`${a.id}|${b.id}`, sim);
+      }
+    });
   });
 }
