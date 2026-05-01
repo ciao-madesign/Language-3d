@@ -11,15 +11,15 @@ export function createGraph() {
 export function updateGraphFromCorpus(graph, store) {
   const nodes = graph.nodes;
 
-  // ===== CREAZIONE NODI =====
-  for (let [token, freq] of store.freq) {
+  // ===== NODI =====
+  for (let [token] of store.freq) {
     if (!nodes.has(token)) {
       const node = {
         id: token,
         pos: new THREE.Vector3(
-          (Math.random() - 0.5) * 6,
-          (Math.random() - 0.5) * 6,
-          (Math.random() - 0.5) * 6
+          (Math.random() - 0.5) * 2,
+          (Math.random() - 0.5) * 2,
+          (Math.random() - 0.5) * 2
         ),
         vel: new THREE.Vector3(),
         mass: 1 + Math.random(),
@@ -32,13 +32,13 @@ export function updateGraphFromCorpus(graph, store) {
     }
   }
 
-  // ===== RESET LINKS =====
+  const nodeList = Array.from(nodes.values());
+
+  // reset
   nodes.forEach(n => n.links.clear());
   graph.edges.clear();
 
-  const nodeList = Array.from(nodes.values());
-
-  // ===== UPDATE EMBEDDING (LOCAL) =====
+  // embedding update
   nodeList.forEach(node => {
     const neighbors = Array.from(node.links)
       .map(id => nodes.get(id))
@@ -47,7 +47,7 @@ export function updateGraphFromCorpus(graph, store) {
     updateEmbedding(node, neighbors);
   });
 
-  // ===== COSTRUZIONE EDGE SEMANTICI =====
+  // semantic edges
   for (let i = 0; i < nodeList.length; i++) {
     for (let j = i + 1; j < nodeList.length; j++) {
       const a = nodeList[i];
@@ -64,7 +64,7 @@ export function updateGraphFromCorpus(graph, store) {
     }
   }
 
-  // ===== RE-UPDATE EMBEDDING DOPO EDGE =====
+  // re-update embeddings
   nodeList.forEach(node => {
     const neighbors = Array.from(node.links)
       .map(id => nodes.get(id))
