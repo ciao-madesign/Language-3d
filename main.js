@@ -7,50 +7,54 @@ import { createGraph, updateGraphFromCorpus } from './src/core/graph.js';
 import { stepPhysics } from './src/core/physics.js';
 
 import { CorpusStore } from './src/data/store.js';
-import { startStream } from './src/data/stream.js';
+
+import { corpora } from './src/data/corpora.js';
+import { loadCorpus } from './src/data/corpusLoader.js';
+import { setCorpus, stepCorpus } from './src/data/corpusStream.js';
 
 import { updateUI } from './src/ui/panel.js';
-import { languages } from './src/data/languages.js';
 
 const canvas = document.getElementById("c");
 
 // ===== SCENE =====
 const { scene, camera, renderer, controls } = initScene(canvas);
 
-// ===== LANGUAGE UI =====
-const select = document.getElementById("languageSelect");
-
-let currentLang = "Italiano";
-
-Object.keys(languages).forEach(l => {
-  const o = document.createElement("option");
-  o.value = l;
-  o.textContent = l;
-  select.appendChild(o);
-});
-
-select.value = currentLang;
-
-select.onchange = () => {
-  currentLang = select.value;
-};
-
 // ===== DATA =====
 const store = new CorpusStore();
 const graph = createGraph();
 
-// ===== STREAM =====
-startStream(
-  store,
-  () => currentLang,
-  () => {
-    updateGraphFromCorpus(graph, store);
-  }
-);
+// ===== UI CORPUS =====
+const select = document.getElementById("corpusSelect");
+const loadBtn = document.getElementById("loadCorpusBtn");
+
+Object.keys(corpora).forEach(k => {
+  const o = document.createElement("option");
+  o.value = k;
+  o.textContent = corpora[k].name;
+  select.appendChild(o);
+});
+
+let currentCorpus = "wiki";
+select.value = currentCorpus;
+
+select.onchange = () => {
+  currentCorpus = select.value;
+};
+
+loadBtn.onclick = async () => {
+  const cfg = corpora[currentCorpus];
+
+  const chunks = await loadCorpus(cfg.url);
+  setCorpus(chunks);
+};
 
 // ===== LOOP =====
 function animate() {
   requestAnimationFrame(animate);
+
+  stepCorpus(store, () => {
+    updateGraphFromCorpus(graph, store);
+  });
 
   stepPhysics(graph);
   renderGraph(scene, graph);
@@ -58,7 +62,7 @@ function animate() {
   controls.update();
   renderer.render(scene, camera);
 
-  updateUI(graph, currentLang);
+  updateUI(graph, currentCorpus);
 }
 
 animate();
