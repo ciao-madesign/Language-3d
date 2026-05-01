@@ -11,8 +11,8 @@ export function updateUI(graph, corpusName) {
   el.innerHTML = `
     <b>Corpus:</b> ${corpusName}<br/>
     <hr/>
-    <b>Nodes:</b> ${nodes}<br/>
+    <b>Nodes (active):</b> ${nodes}<br/>
     <b>Avg links:</b> ${avgLinks.toFixed(2)}<br/>
-    <b>Status:</b> real corpus streaming
+    <b>Mode:</b> pruned + scaled<br/>
   `;
 }
