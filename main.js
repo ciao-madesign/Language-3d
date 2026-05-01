@@ -23,7 +23,7 @@ const { scene, camera, renderer, controls } = initScene(canvas);
 const store = new CorpusStore();
 const graph = createGraph();
 
-// ===== UI CORPUS =====
+// ===== UI =====
 const select = document.getElementById("corpusSelect");
 const loadBtn = document.getElementById("loadCorpusBtn");
 
@@ -43,18 +43,21 @@ select.onchange = () => {
 
 loadBtn.onclick = async () => {
   const cfg = corpora[currentCorpus];
-
   const chunks = await loadCorpus(cfg.url);
   setCorpus(chunks);
 };
 
 // ===== LOOP =====
+let frame = 0;
+
 function animate() {
   requestAnimationFrame(animate);
 
-  stepCorpus(store, () => {
-    updateGraphFromCorpus(graph, store);
-  });
+  if (frame % 10 === 0) {
+    stepCorpus(store, () => {
+      updateGraphFromCorpus(graph, store);
+    });
+  }
 
   stepPhysics(graph);
   renderGraph(scene, graph);
@@ -63,6 +66,8 @@ function animate() {
   renderer.render(scene, camera);
 
   updateUI(graph, currentCorpus);
+
+  frame++;
 }
 
 animate();
