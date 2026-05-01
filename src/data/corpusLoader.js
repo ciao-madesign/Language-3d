@@ -12,8 +12,7 @@ function splitSentences(text) {
     .filter(s => s.length > 20);
 }
 
-// chunk per evitare overload
-function chunkify(arr, size = 50) {
+function chunkify(arr, size = 30) {
   const out = [];
   for (let i = 0; i < arr.length; i += size) {
     out.push(arr.slice(i, i + size).join(" "));
@@ -28,8 +27,7 @@ export async function loadCorpus(url) {
   const cleaned = clean(text);
   const sentences = splitSentences(cleaned);
 
-  // limite hard per sicurezza browser
-  const limited = sentences.slice(0, 8000);
+  const limited = sentences.slice(0, 2000);
 
-  return chunkify(limited, 40);
+  return chunkify(limited, 30);
 }
