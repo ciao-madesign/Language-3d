@@ -14,7 +14,6 @@ export function createGraph() {
 export function updateGraphFromCorpus(graph, store) {
   const nodes = graph.nodes;
 
-  // ===== CREA NODI =====
   for (let [token, freq] of store.freq) {
     if (!nodes.has(token)) {
       const node = {
@@ -38,7 +37,6 @@ export function updateGraphFromCorpus(graph, store) {
     }
   }
 
-  // ===== PRUNE NODI =====
   const sorted = Array.from(nodes.values())
     .sort((a, b) => b.freq - a.freq)
     .slice(0, MAX_NODES);
@@ -51,18 +49,14 @@ export function updateGraphFromCorpus(graph, store) {
 
   const nodeList = Array.from(nodes.values());
 
-  // reset
   nodes.forEach(n => n.links.clear());
   graph.edges.clear();
 
-  // ===== EMBEDDING UPDATE (UNA SOLA VOLTA) =====
   nodeList.forEach(node => {
     updateEmbedding(node, []);
   });
 
-  // ===== EDGE APPROX (NO O(n²)) =====
   nodeList.forEach(a => {
-    // campiona pochi nodi
     const sample = [];
 
     for (let i = 0; i < 10; i++) {
@@ -79,7 +73,6 @@ export function updateGraphFromCorpus(graph, store) {
       if (sim > 0.6) {
         a.links.add(b.id);
         b.links.add(a.id);
-
         graph.edges.set(`${a.id}|${b.id}`, sim);
       }
     });
