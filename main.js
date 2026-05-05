@@ -11,6 +11,7 @@ import { CorpusStore } from './src/data/store.js';
 import { corpora } from './src/data/corpora.js';
 import { loadCorpus } from './src/data/corpusLoader.js';
 import { setCorpus, stepCorpus } from './src/data/corpusStream.js';
+import { languages } from './src/data/languages.js';
 
 import { updateUI } from './src/ui/panel.js';
 
@@ -19,11 +20,44 @@ const canvas = document.getElementById("c");
 // ===== SCENE =====
 const { scene, camera, renderer, controls } = initScene(canvas);
 
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 // ===== DATA =====
 const store = new CorpusStore();
 const graph = createGraph();
 
-// ===== UI =====
+// ===== LANGUAGE SELECT =====
+const langSelect = document.getElementById("languageSelect");
+Object.keys(languages).forEach(lang => {
+  const o = document.createElement("option");
+  o.value = lang;
+  o.textContent = lang;
+  langSelect.appendChild(o);
+});
+
+function seedFromLanguage(langName) {
+  const sentences = languages[langName];
+  if (!sentences) return;
+  const chunks = [];
+  for (let i = 0; i < 40; i++) chunks.push(...sentences);
+  setCorpus(chunks);
+  store.freq.clear();
+  store.cooc.clear();
+  graph.nodes.clear();
+  graph.edges.clear();
+}
+
+const defaultLang = Object.keys(languages)[0];
+langSelect.value = defaultLang;
+seedFromLanguage(defaultLang);
+
+langSelect.onchange = () => seedFromLanguage(langSelect.value);
+
+// ===== CORPUS SELECT =====
 const select = document.getElementById("corpusSelect");
 const loadBtn = document.getElementById("loadCorpusBtn");
 
@@ -43,8 +77,20 @@ select.onchange = () => {
 
 loadBtn.onclick = async () => {
   const cfg = corpora[currentCorpus];
-  const chunks = await loadCorpus(cfg.url);
-  setCorpus(chunks);
+  loadBtn.disabled = true;
+  loadBtn.textContent = "Loading...";
+  try {
+    const chunks = await loadCorpus(cfg.url);
+    setCorpus(chunks);
+    store.freq.clear();
+    store.cooc.clear();
+    graph.nodes.clear();
+    graph.edges.clear();
+  } catch (e) {
+    console.error("Failed to load corpus:", e);
+  }
+  loadBtn.disabled = false;
+  loadBtn.textContent = "Load";
 };
 
 // ===== LOOP =====

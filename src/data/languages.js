@@ -1,17 +1,53 @@
 export const languages = {
   Italiano: [
-    "la lingua evolve nel tempo",
-    "i sistemi semantici sono dinamici",
-    "le parole creano reti di significato"
+    "la lingua evolve nel tempo attraverso la cultura e la storia",
+    "i sistemi semantici sono reti dinamiche di parole e concetti",
+    "le parole creano reti complesse di significato e relazione",
+    "il linguaggio riflette la struttura della mente umana",
+    "la grammatica organizza il pensiero in strutture coerenti",
+    "ogni parola porta un campo di significati correlati e sfumati",
+    "le lingue cambiano con le società e le culture nel tempo",
+    "la comunicazione umana usa simboli e strutture condivise",
+    "i suoni delle parole formano sistemi fonologici complessi",
+    "la semantica studia il significato delle parole nel contesto",
+    "le metafore strutturano il modo di pensare e comunicare",
+    "la sintassi regola la combinazione delle parole nelle frasi",
+    "il vocabolario di una lingua riflette la sua cultura",
+    "le parole astratte costruiscono concetti complessi e profondi",
+    "il dialogo crea significato condiviso tra le persone"
   ],
   Inglese: [
-    "language evolves over time",
-    "semantic networks are dynamic",
-    "words create meaning structures"
+    "language evolves through culture and society over time",
+    "semantic networks are dynamic structures of words and meaning",
+    "words create complex webs of meaning and relationships",
+    "grammar organizes thought into coherent structured patterns",
+    "every word carries a field of related and nuanced meanings",
+    "languages change with societies and cultures across history",
+    "human communication uses shared symbols and syntax systems",
+    "sounds of words form complex phonological systems of rules",
+    "semantics studies the meaning of words within context",
+    "metaphors shape the way we think and communicate ideas",
+    "syntax governs the combination of words into sentences",
+    "vocabulary of a language reflects its underlying culture",
+    "abstract words build complex and profound conceptual spaces",
+    "dialogue creates shared meaning between speakers and listeners",
+    "language acquisition follows universal patterns in children"
   ],
   Tedesco: [
-    "sprache entwickelt sich ständig",
-    "netzwerke tragen bedeutung",
-    "struktur und grammatik interagieren"
+    "sprache entwickelt sich durch kultur und gesellschaft im laufe der zeit",
+    "semantische netzwerke sind dynamische strukturen von wörtern",
+    "wörter schaffen komplexe bedeutungsstrukturen und beziehungen",
+    "grammatik organisiert gedanken in kohärente strukturierte muster",
+    "jedes wort trägt ein feld verwandter und nuancierter bedeutungen",
+    "sprachen ändern sich mit gesellschaften und kulturen in der geschichte",
+    "menschliche kommunikation verwendet gemeinsame symbole und syntax",
+    "laute der wörter bilden komplexe phonologische systeme und regeln",
+    "semantik untersucht die bedeutung von wörtern im kontext",
+    "metaphern prägen die art wie wir denken und kommunizieren",
+    "syntax regelt die kombination von wörtern zu sätzen und aussagen",
+    "der wortschatz einer sprache spiegelt ihre zugrunde liegende kultur",
+    "abstrakte wörter bauen komplexe und tiefe konzeptuelle räume auf",
+    "dialog schafft gemeinsame bedeutung zwischen sprechern und zuhörern",
+    "spracherwerb folgt universellen mustern bei kindern weltweit"
   ]
 };
